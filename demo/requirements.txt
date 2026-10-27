@@ -1,0 +1,5 @@
+# Gradio comes from sdk_version in README.md; `spaces` is preinstalled on ZeroGPU hardware.
+torch
+transformers==5.19.0
+accelerate==1.15.0
+aksharamukha==2.3

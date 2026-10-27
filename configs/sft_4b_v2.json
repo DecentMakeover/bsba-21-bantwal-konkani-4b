@@ -1,0 +1,39 @@
+{
+ "name": "sft-4b-v2",
+ "description": "Stage B v2: fresh LoRA on Gemma-3-4B-it + konkani-gemma-3-4b-it + stage A (cpt-4b-v1) all merged; data = filtered, markdown-stripped Kannada-script instruct rows (60%) + Mangalorean corpus replay blocks (40%, full loss); lr 5e-5; 296 steps in 2 time-limited job slots.",
+ "base_path": "unsloth/gemma-3-4b-it",
+ "konkani_adapter_path": "konkani/konkani-gemma-3-4b-it",
+ "merge_adapter_paths": [
+  "models/cpt-4b-v1/final"
+ ],
+ "lora": {
+  "r": 16,
+  "alpha": 32,
+  "dropout": 0.05,
+  "target_modules": ".*language_model.*\\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)"
+ },
+ "train_ids": "data/sft_v2/train_ids.npy",
+ "train_labels": "data/sft_v2/train_labels.npy",
+ "valid_ids": "data/sft_v2/valid_ids.npy",
+ "valid_labels": "data/sft_v2/valid_labels.npy",
+ "extra_eval": {
+  "name": "mangalorean_corpus",
+  "blocks": "data/tokens/valid_gemma3_seq1024.npy",
+  "n": 100
+ },
+ "frozen_data": {},
+ "output_dir": "models/sft-4b-v2",
+ "seq": 1024,
+ "micro_batch": 4,
+ "grad_accum": 4,
+ "lr": 5e-05,
+ "warmup_steps": 15,
+ "weight_decay": 0.0,
+ "max_grad_norm": 1.0,
+ "total_steps": 296,
+ "seed": 20261021,
+ "slot_budget_s": 3360,
+ "reserve_s": 360,
+ "eval_blocks": 120,
+ "log_every": 10
+}

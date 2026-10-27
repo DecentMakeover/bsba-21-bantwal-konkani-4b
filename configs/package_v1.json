@@ -1,0 +1,24 @@
+{
+ "name": "package-v1",
+ "description": "Release v1 candidate: Gemma-3-4B-it + konkani/konkani-gemma-3-4b-it + stage A (cpt-4b-v1) + stage B v2 (sft-4b-v2), merged.",
+ "base_path": "unsloth/gemma-3-4b-it",
+ "konkani_adapter_path": "konkani/konkani-gemma-3-4b-it",
+ "merge_adapter_paths": [
+  "models/cpt-4b-v1/final"
+ ],
+ "final_adapter_path": "models/sft-4b-v2/final",
+ "check_blocks": "data/eval/heldout_gemma3_seq1024.npy",
+ "check_n": 8,
+ "llama_cpp_dir": ".tools/llama.cpp",
+ "release_name": "bsba-21-bantwal-konkani-4b-v1",
+ "quant_types": [
+  "Q8_0",
+  "Q4_K_M"
+ ],
+ "output_dir": "release/v1",
+ "test_prompts": [
+  "Reply in Mangalorean Konkani, written in Kannada script, in two or three sentences. Tell your brother in Dubai that everyone at home misses him.",
+  "Reply in Mangalorean Konkani, written in Kannada script, in two or three sentences. Ask a shopkeeper the price of fish today.",
+  "Translate this sentence into Mangalorean Konkani, written in Kannada script. Reply with only the translation.\n\nI will come to your house tomorrow evening."
+ ]
+}

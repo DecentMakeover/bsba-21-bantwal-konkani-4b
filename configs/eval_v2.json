@@ -1,0 +1,60 @@
+{
+ "name": "eval-v2",
+ "description": "Automatic scorecard v2: baseline, stage A, stage B v1 and stage B v2 on the same tests as eval-v1.",
+ "base_path": "unsloth/gemma-3-4b-it",
+ "konkani_adapter_path": "konkani/konkani-gemma-3-4b-it",
+ "models": [
+  {
+   "name": "baseline"
+  },
+  {
+   "name": "stage_a",
+   "adapter": "models/cpt-4b-v1/final"
+  },
+  {
+   "name": "stage_b",
+   "adapter": "models/sft-4b-v1/final"
+  },
+  {
+   "name": "stage_b_v2",
+   "merge": [
+    "models/cpt-4b-v1/final"
+   ],
+   "adapter": "models/sft-4b-v2/final"
+  }
+ ],
+ "valid_blocks": "data/tokens/valid_gemma3_seq1024.npy",
+ "heldout_blocks": "data/eval/heldout_gemma3_seq1024.npy",
+ "kbench_path": "data/eval/konkani-bench/benchmark.jsonl",
+ "lexicon_path": "notes/mangalorean_lexicon.tsv",
+ "output_dir": "notes/eval_v2",
+ "ppl_blocks": 100,
+ "batch": 16,
+ "max_new_translate": 64,
+ "max_new_everyday": 160,
+ "kn2en_template": "Translate this Konkani sentence into English. Reply with only the English translation.\n\n{text}",
+ "en2kn_template": "Translate this sentence into Mangalorean Konkani, written in Kannada script. Reply with only the translation.\n\n{text}",
+ "everyday_template": "Reply in Mangalorean Konkani, written in Kannada script, in two or three sentences. {task}",
+ "everyday_prompts": [
+  "Greet a neighbour after Sunday Mass and ask about their family.",
+  "Tell your mother you will be late for dinner tonight.",
+  "Ask a shopkeeper the price of fish today.",
+  "Invite a friend home for tea this evening.",
+  "Ask your grandmother how she made kuswar when she was young.",
+  "Tell a friend about the heavy rain in Mangalore this week.",
+  "Ask a child how school was today.",
+  "Explain briefly how to make pork bafat.",
+  "Congratulate someone on their daughter's engagement.",
+  "Ask someone to call you back later.",
+  "Say you are not feeling well and ask for a home remedy.",
+  "Describe what happens at a Mangalorean roce ceremony.",
+  "Ask for directions to the Hampankatta bus stand.",
+  "Tell your brother in Dubai that everyone at home misses him.",
+  "Apologise for forgetting a friend's birthday.",
+  "Ask what time Mass is tomorrow morning.",
+  "Explain why you like living in Mangalore.",
+  "Ask a friend to help you move house next week.",
+  "Tell someone the bus was late again today.",
+  "Say goodnight to your family and remind them about church tomorrow."
+ ]
+}

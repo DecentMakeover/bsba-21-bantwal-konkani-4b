@@ -1,0 +1,13 @@
+{
+ "note": "SHA-256 of the data files used in our v1 run. The public configs leave frozen_data empty because a rebuilt corpus will differ. Add your own hashes to freeze a run.",
+ "configs": {
+  "sft_4b_v2.json": {
+   "data/sft_v2/train_ids.npy": "62b0962d7ddab63e14cce43459bde6f15de9834183bcaa3fa59462f8604cbe26",
+   "data/sft_v2/train_labels.npy": "89c78624b1660674d5377fbf05e194c4af1f45decf036122e731fb45b424de78",
+   "data/sft_v2/valid_ids.npy": "9f946ca01f09d1775c263dbebd1bbf57c96d9c557a3a7da3da173e8f822b1447",
+   "data/sft_v2/valid_labels.npy": "476e6d0999361a2fc800c28f5eea58804dfc71e90ddf54e5343f9e342dce6184",
+   "data/tokens/valid_gemma3_seq1024.npy": "ed84632e168438db45db898904111c631939055f0c68f78ebb010547eacb0510",
+   "models/cpt-4b-v1/final/adapter_model.safetensors": "c1c43f83dce514eec9d12ec87275ae4e959d96d16e912c668bef849c9bc1b39a"
+  }
+ }
+}

@@ -1,0 +1,29 @@
+{
+ "name": "cpt-4b-v1",
+ "description": "Stage A: LoRA continued pretraining of Gemma-3-4B-it + konkani/konkani-gemma-3-4b-it (merged) on batch-1 Mangalorean corpus, one epoch, resumable across time-limited job slots.",
+ "base_path": "unsloth/gemma-3-4b-it",
+ "konkani_adapter_path": "konkani/konkani-gemma-3-4b-it",
+ "token_manifest": "data/tokens/manifest_v1.json",
+ "train_blocks": "data/tokens/train_gemma3_seq1024.npy",
+ "valid_blocks": "data/tokens/valid_gemma3_seq1024.npy",
+ "output_dir": "models/cpt-4b-v1",
+ "lora": {
+  "r": 16,
+  "alpha": 32,
+  "dropout": 0.05,
+  "target_modules": ".*language_model.*\\.(q_proj|k_proj|v_proj|o_proj|gate_proj|up_proj|down_proj)"
+ },
+ "seq": 1024,
+ "micro_batch": 4,
+ "grad_accum": 4,
+ "lr": 0.0002,
+ "warmup_steps": 30,
+ "weight_decay": 0.0,
+ "max_grad_norm": 1.0,
+ "total_steps": 608,
+ "seed": 20261019,
+ "slot_budget_s": 3360,
+ "reserve_s": 330,
+ "eval_blocks": 100,
+ "log_every": 10
+}
