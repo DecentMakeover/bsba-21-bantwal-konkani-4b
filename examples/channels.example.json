@@ -1,0 +1,17 @@
+{
+ "everyday": {
+  "Example Recipe Channel": "recipe",
+  "Example Radio Channel": "radio"
+ },
+ "sermon": [
+  "Example Sermon Channel"
+ ],
+ "mixed": [
+  "Example Mixed Channel"
+ ],
+ "conversation_shows": "example show name|another show",
+ "heldout": [
+  "Example Held-out Channel A",
+  "Example Held-out Channel B"
+ ]
+}

@@ -1,6 +1,6 @@
 """Mangalorean Konkani spelling for Kannada-script text transliterated from Devanagari.
 
-Rules (Mangalorean print convention, e.g. Carmel Kiran / Daijiworld titles):
+Rules (Mangalorean print convention, as in the Konkani titles of Mangalorean channels):
   1. long vowels -> short: ಈ ಊ ಏ ಓ (and their signs) -> ಇ ಉ ಎ ಒ
   2. word-final bare consonant gets a virama: ಹಾಂವ -> ಹಾಂವ್, ಘರ -> ಘರ್
   3. schwa deletion, right to left: a bare consonant between a vowel-bearing syllable and a consonant+vowel

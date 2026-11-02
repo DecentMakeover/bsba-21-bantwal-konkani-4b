@@ -23,8 +23,7 @@ from aksharamukha import transliterate  # noqa: E402
 
 ROOT = transcribe.ROOT
 TOK = "unsloth/gemma-3-4b-it"
-HELDOUT_CHANNELS = {"Amoris TV", "Beautiful world_Steven DSouza", "CANARA PULSE", "Cook On with Rita",
-                    "Holy Spirit Intercessors", "TFRCC TV"}
+HELDOUT_CHANNELS = set(json.loads((ROOT / "notes/channels.json").read_text())["heldout"])  # never used in training
 SEQ = 1024
 
 

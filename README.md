@@ -34,7 +34,8 @@ in Konkani 90% vs 5%, English → Konkani chrF 31.7 vs 8.4, perplexity on unseen
 No audio, transcripts or training text. They come from public YouTube videos whose creators did not license them for
 redistribution. The scripts rebuild the corpus from the sources. The channel list is not included either: put your own
 in `notes/seed_channels.tsv` (format in `examples/seed_channels.example.tsv`: one video ID per channel, a genre, the
-Konkani variety and an optional regular expression to keep only matching titles).
+Konkani variety and an optional regular expression to keep only matching titles), and the channel groups used to
+build the batch and the held-out set in `notes/channels.json` (format in `examples/channels.example.json`).
 
 ## Requirements
 

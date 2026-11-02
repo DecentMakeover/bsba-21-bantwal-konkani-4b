@@ -111,9 +111,15 @@ def gemma_prompt(msgs):
 
 
 def konkani_part(text, final=False):
-    """Cut the reply at the first mostly-English line after some Konkani (the model sometimes adds English glosses).
-    Returns (text, cut). While streaming, a short unfinished last line is not judged yet."""
-    kept, lines = [], text.split("\n")
+    """Keep the Konkani: drop English lines before it ("Here is how you can say...") and cut at the first mostly-English
+    line after it (the model sometimes adds English glosses). Returns (text, cut). While streaming, an English lead-in
+    gives "" until Konkani starts, and a short unfinished last line is not judged yet. A reply with no Konkani at all is
+    returned unchanged at the end."""
+    lines = text.split("\n")
+    first = next((i for i, line in enumerate(lines) if any("ಀ" <= ch <= "೿" for ch in line)), None)
+    if first is None:
+        return (text if final else ""), False
+    kept, lines = [], lines[first:]
     for i, line in enumerate(lines):
         kn = sum("ಀ" <= ch <= "೿" for ch in line)
         la = sum(ch.isascii() and ch.isalpha() for ch in line)
@@ -121,7 +127,7 @@ def konkani_part(text, final=False):
         if done and la > kn and la >= 4 and any("ಀ" <= ch <= "೿" for ch in "".join(kept)):
             return "\n".join(kept).rstrip(" \n-*_:"), True
         kept.append(line)
-    return text, False
+    return "\n".join(lines), False
 
 
 def roman(text):
@@ -160,7 +166,7 @@ def respond(message, history, konkani, show_roman, request: gr.Request = None):
     for piece in stream_reply(build_messages(message, history, konkani)):
         raw += piece
         out, cut = konkani_part(raw) if konkani else (raw, False)
-        yield out
+        yield out or "…"
         if cut:
             break  # stop generating the English tail
     if konkani:

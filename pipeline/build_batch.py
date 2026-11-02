@@ -1,6 +1,7 @@
 """Build batch 1 (~500 h raw) from notes/inventory.tsv: conversational + everyday Konkani first, sermons capped,
 liturgy / music excluded. Writes notes/batch1.tsv (id, channel, category, duration_s, title)."""
 import csv
+import json
 import random
 import re
 from collections import defaultdict
@@ -13,12 +14,13 @@ LITURGY = re.compile(r"ಮಾಗ್ಣಿಂ|prayer|rosary|ರೊಜಾರ್|no
                      r"ಗೀತ್|song|feast|flag|ತೇರ್ಸ್|ತೆರ್ಸ್|way of the cross|ಖುರ್ಸಾ|live|🅻🅸🆅🅴|🔴|choir|ಮಾಳ್|"
                      r"music|devotional|ಭಕ್ತಿಕ್|jubilee|ordination|funeral|wedding|lyric|psalm|praise|worship|ನವೆನ್|singing|reels|"
                      r"competition|ಕೀರ್ತನಾಂ|karaoke|teaser|trailer|promo", re.I)
-CONVERSATION = re.compile(r"leeza|carmel cafe|episode|\bep\.? ?\d|podcast|interview|ಸಂವಾದ್", re.I)
+CHANNELS = json.loads((ROOT / "notes/channels.json").read_text())  # format: examples/channels.example.json
+CONVERSATION = re.compile("|".join(filter(None, [CHANNELS.get("conversation_shows", ""),
+                                                  r"episode|\bep\.? ?\d|podcast|interview|ಸಂವಾದ್"])), re.I)
 TALK = re.compile(r"\bfr\b|\bfr\.|father|\brev\b|\bsr\b|sister|bishop|ಬಾಪ್|reflection|sermon|retreat|talk", re.I)
-EVERYDAY = {"Kavita Dsouza Kitchen": "recipe", "Ayche Special": "recipe", "Senet Dcunha": "recipe",
-            "Felcys Kitchen": "recipe", "Akashvani Mangalore": "radio", "MegaMediaNews Mangalore": "news",
-            "KiriKiri Jodi": "comedy", "Media Vision Mangalore": "drama", "Abhinaya Manjeshwar Productions": "podcast"}
-SERMON_CHANNELS = {"Mangalore Diocese CCC", "DIVINE WORD TV"}
+EVERYDAY = CHANNELS["everyday"]        # channel -> category, all taken
+SERMON_CHANNELS = set(CHANNELS["sermon"])  # capped at SERMON_HOURS
+MIXED = set(CHANNELS["mixed"])          # split by title: conversation / talk (sermon pool) / other
 
 
 def main():
@@ -32,13 +34,13 @@ def main():
         ch, title = r["channel"], r["title"]
         if ch in EVERYDAY:
             picked.append((r, EVERYDAY[ch]))
-        elif ch == "Carmel Kiran Media":
+        elif ch in MIXED:
             if CONVERSATION.search(title):
                 picked.append((r, "conversation"))
             elif TALK.search(title):
                 sermon_pool.append(r)
             else:
-                picked.append((r, "carmel-other"))
+                picked.append((r, "mixed-other"))
         elif ch in SERMON_CHANNELS:
             sermon_pool.append(r)
     random.Random(1).shuffle(sermon_pool)
