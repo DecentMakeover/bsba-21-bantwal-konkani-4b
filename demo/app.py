@@ -1,31 +1,70 @@
-"""Demo chat for the Mangalorean Konkani model (Hugging Face Space, ZeroGPU).
+"""Demo chat for BSBA-21-Bantwal, a Mangalorean Konkani model, on a free CPU Hugging Face Space.
 
-The model answers in Kannada script; an optional rough Roman-letter reading is added for readers who do not read it.
-Per-visitor limit (REPLIES_PER_HOUR), short history (MAX_TURNS) and a reply cap (MAX_NEW_TOKENS) keep GPU use small.
-Conversations are not stored or logged. DEMO_MOCK=1 runs the interface without the model (for local testing)."""
-import os, time, threading
+llama.cpp's own server (release b11500, the build that made the GGUF) runs the Q4_K_M file on 2 CPU cores, and this
+app streams its replies. Replies are short (MAX_NEW_TOKENS) and cut at the first mostly-English line; an optional rough
+Roman-letter reading is added for readers who do not read Kannada script. Per-visitor limit: REPLIES_PER_HOUR.
+Conversations are not stored or logged. DEMO_MOCK=1 runs the interface without the model (for local testing);
+LLAMA_BIN and MODEL_PATH point at a local llama-server and GGUF instead of downloading them."""
+import json, os, subprocess, tarfile, threading, time
 from collections import defaultdict, deque
+from pathlib import Path
 
 import gradio as gr
+import httpx
 from aksharamukha import transliterate
 
-MODEL_ID = os.environ.get("MODEL_ID", "decentmakeover/bsba-21-bantwal-konkani-4b")
+MODEL_REPO = os.environ.get("MODEL_REPO", "decentmakeover/bsba-21-bantwal-konkani-4b")
+MODEL_FILE = os.environ.get("MODEL_FILE", "bsba-21-bantwal-konkani-4b-v1-Q4_K_M.gguf")
+LLAMA_URL = "https://github.com/ggml-org/llama.cpp/releases/download/b11500/llama-b11500-bin-ubuntu-x64.tar.gz"
+THREADS, PORT = int(os.environ.get("THREADS", "2")), 8081
 MOCK = os.environ.get("DEMO_MOCK") == "1"
-MAX_NEW_TOKENS, MAX_TURNS, MAX_INPUT_CHARS, REPLIES_PER_HOUR = 256, 4, 600, 20
-KONKANI_HINT = "Reply in Mangalorean Konkani, written in Kannada script. "
+MAX_NEW_TOKENS, MAX_TURNS, MAX_INPUT_CHARS, REPLIES_PER_HOUR = 96, 3, 400, 20
+KONKANI_HINT = "Reply in Mangalorean Konkani, written in Kannada script, in one or two short sentences. "
+HERE = Path(__file__).resolve().parent
 
-try:
-    import spaces  # ZeroGPU on Hugging Face; a no-op decorator elsewhere
-    gpu = spaces.GPU(duration=60)
-except ImportError:
-    gpu = lambda f: f
+
+def model_path():
+    if os.environ.get("MODEL_PATH"):
+        return os.environ["MODEL_PATH"]
+    if (HERE / MODEL_FILE).exists():  # bundled with the Space while the model repo is private
+        return str(HERE / MODEL_FILE)
+    from huggingface_hub import hf_hub_download
+    return hf_hub_download(MODEL_REPO, MODEL_FILE)
+
+
+def llama_server():
+    if os.environ.get("LLAMA_BIN"):
+        return os.environ["LLAMA_BIN"]
+    exe = HERE / "llama-b11500" / "llama-server"
+    if not exe.exists():
+        tgz = HERE / "llama.tar.gz"
+        with httpx.stream("GET", LLAMA_URL, follow_redirects=True, timeout=120) as r, open(tgz, "wb") as f:
+            r.raise_for_status()
+            for chunk in r.iter_bytes():
+                f.write(chunk)
+        with tarfile.open(tgz) as t:
+            t.extractall(HERE, filter="data")
+        tgz.unlink()
+        exe.chmod(0o755)
+    return str(exe)
+
+
+def start_server():
+    cmd = [llama_server(), "-m", model_path(), "-t", str(THREADS), "-c", "2048", "-np", "1",
+           "--host", "127.0.0.1", "--port", str(PORT), "--log-disable"]
+    subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(600):
+        try:
+            if httpx.get(f"http://127.0.0.1:{PORT}/health", timeout=2).status_code == 200:
+                return
+        except httpx.HTTPError:
+            pass
+        time.sleep(1)
+    raise RuntimeError("llama-server did not start")
+
 
 if not MOCK:
-    import torch
-    from transformers import AutoModelForImageTextToText, AutoTokenizer, StoppingCriteria, StoppingCriteriaList, TextIteratorStreamer
-    tok = AutoTokenizer.from_pretrained(MODEL_ID)
-    device = "cuda" if torch.cuda.is_available() or os.environ.get("SPACES_ZERO_GPU") else "cpu"
-    model = AutoModelForImageTextToText.from_pretrained(MODEL_ID, dtype=torch.bfloat16).to(device).eval()
+    start_server()
 
 _recent = defaultdict(deque)
 _lock = threading.Lock()
@@ -65,6 +104,12 @@ def build_messages(message, history, konkani):
     return msgs
 
 
+def gemma_prompt(msgs):
+    turns = "".join(f"<start_of_turn>{'model' if m['role'] == 'assistant' else 'user'}\n{m['content']}<end_of_turn>\n"
+                    for m in msgs)
+    return turns + "<start_of_turn>model\n"
+
+
 def konkani_part(text, final=False):
     """Cut the reply at the first mostly-English line after some Konkani (the model sometimes adds English glosses).
     Returns (text, cut). While streaming, a short unfinished last line is not judged yet."""
@@ -83,30 +128,23 @@ def roman(text):
     return transliterate.process("Kannada", "RomanReadable", text).replace("'", "")
 
 
-if not MOCK:
-    class Halt(StoppingCriteria):
-        def __init__(self, event):
-            self.event = event
-
-        def __call__(self, input_ids, scores, **kwargs):
-            hit = self.event is not None and self.event.is_set()
-            return torch.full((input_ids.shape[0],), hit, dtype=torch.bool, device=input_ids.device)
-
-
-@gpu
-def stream_reply(msgs, stop=None):
+def stream_reply(msgs):
+    """Yield text pieces from llama-server; leaving the loop early closes the stream, which stops generation."""
     if MOCK:
         for w in f"(mock reply; the model is not loaded) {len(msgs)} messages, last: {msgs[-1]['content'][:80]}".split():
             time.sleep(0.05)
             yield w + " "
         return
-    x = tok.apply_chat_template(msgs, add_generation_prompt=True, return_tensors="pt", return_dict=True).to(model.device)
-    streamer = TextIteratorStreamer(tok, skip_prompt=True, skip_special_tokens=True)
-    halt = StoppingCriteriaList([Halt(stop)])
-    kw = dict(**x, streamer=streamer, max_new_tokens=MAX_NEW_TOKENS, do_sample=True, temperature=0.7, top_p=0.9,
-              repetition_penalty=1.1, stopping_criteria=halt)
-    threading.Thread(target=model.generate, kwargs=kw, daemon=True).start()
-    yield from streamer
+    body = {"prompt": gemma_prompt(msgs), "n_predict": MAX_NEW_TOKENS, "temperature": 0.7, "top_p": 0.9,
+            "repeat_penalty": 1.1, "stream": True, "cache_prompt": True}
+    with httpx.stream("POST", f"http://127.0.0.1:{PORT}/completion", json=body, timeout=300) as r:
+        for line in r.iter_lines():
+            if line.startswith("data: "):
+                d = json.loads(line[6:])
+                if d.get("content"):
+                    yield d["content"]
+                if d.get("stop"):
+                    return
 
 
 def respond(message, history, konkani, show_roman, request: gr.Request = None):
@@ -117,14 +155,14 @@ def respond(message, history, konkani, show_roman, request: gr.Request = None):
     if not allow(visitor_key(request)):
         yield f"You have reached the limit of {REPLIES_PER_HOUR} replies an hour. Please try again later."
         return
-    out, raw, stop = "", "", threading.Event()
-    for piece in stream_reply(build_messages(message, history, konkani), stop):
+    yield "…"
+    out, raw = "", ""
+    for piece in stream_reply(build_messages(message, history, konkani)):
         raw += piece
         out, cut = konkani_part(raw) if konkani else (raw, False)
         yield out
         if cut:
-            stop.set()  # stop generating the English tail
-            break
+            break  # stop generating the English tail
     if konkani:
         out = konkani_part(raw, final=True)[0]
         yield out
@@ -133,17 +171,19 @@ def respond(message, history, konkani, show_roman, request: gr.Request = None):
 
 
 EXAMPLES = [
+    ["Ask a shopkeeper the price of fish today."],
+    ["Tell your mother you will be late for dinner tonight."],
     ["Greet a neighbour after Sunday Mass and ask about their family."],
     ["Tell your brother in Dubai that everyone at home misses him."],
-    ["Ask a shopkeeper the price of fish today."],
-    ["Explain briefly how to make pork bafat."],
-    ["Describe what happens at a Mangalorean roce ceremony."],
+    ["Invite a friend home for tea this evening."],
     ["Translate into Konkani: I will come to your house tomorrow evening."],
 ]
 
 DESCRIPTION = """A small open model (4B) adapted to **Mangalorean Konkani as it is spoken**, written in Kannada script.
-Type in English or Konkani. It makes things up, so do not rely on it for facts.
-Conversations are not stored. [Model card](https://huggingface.co/decentmakeover/bsba-21-bantwal-konkani-4b) · [Code](https://github.com/DecentMakeover/bsba-21-bantwal-konkani-4b)"""
+Type in English or Konkani. It runs on a free 2-core CPU, so a reply takes about a minute and appears word by word.
+It makes things up, so do not rely on it for facts. Conversations are not stored.
+[Model card](https://huggingface.co/decentmakeover/bsba-21-bantwal-konkani-4b) ·
+[Code](https://github.com/DecentMakeover/bsba-21-bantwal-konkani-4b)"""
 
 demo = gr.ChatInterface(
     respond,
@@ -159,4 +199,4 @@ demo = gr.ChatInterface(
 )
 
 if __name__ == "__main__":
-    demo.queue(default_concurrency_limit=2).launch()
+    demo.queue(default_concurrency_limit=1).launch()

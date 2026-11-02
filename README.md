@@ -19,7 +19,7 @@ trained, evaluated and packaged model.
 | 7. Train | `training/train_cpt.py`, `training/prep_sft_v2.py`, `training/train_lora_v2.py` | Stage A dialect pass; stage B instruction tuning with Mangalorean replay. Resumable in fixed-length runs |
 | 8. Evaluate | `eval/eval_suite.py`, `eval/generate_check.py` | Perplexity (in-domain + unseen channels), Konkani-Bench chrF, stays-in-Konkani, Mangalorean word share |
 | 9. Package | `release/package_release.py` | Merge, verify, GGUF conversion and quantization, smoke test |
-| 10. Demo | `demo/app.py` | Gradio chat app for a Hugging Face Space (replies cut at the first English line) |
+| 10. Demo | `demo/app.py` | Gradio chat app that runs the Q4_K_M file on a CPU with llama.cpp (replies cut at the first English line) |
 
 `configs/` holds the settings used for the v1 run. All paths in the scripts and configs are relative to the repository
 root, and models are named by their Hugging Face IDs, so the code runs from a fresh clone on any machine.
