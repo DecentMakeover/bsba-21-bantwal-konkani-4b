@@ -1,7 +1,7 @@
 # BSBA-21-Bantwal
 
 Code for BSBA-21-Bantwal, an open language model adapted to **Mangalorean Konkani as it is actually spoken**, in Kannada script.
-The model is on Hugging Face: https://huggingface.co/decentmakeover/bsba-21-bantwal-konkani-4b. This repository has the full pipeline: from public speech recordings to a
+The model is on Hugging Face: [decentmakeover/bsba-21-bantwal-konkani-4b](https://huggingface.co/decentmakeover/bsba-21-bantwal-konkani-4b). This repository has the full pipeline: from public speech recordings to a
 trained, evaluated and packaged model.
 
 **Why the name?** Bantwal is my hometown, near Mangalore, and BSBA-21 is my batch: the 21st batch of BSBA.
@@ -26,7 +26,7 @@ root, and models are named by their Hugging Face IDs, so the code runs from a fr
 
 ## Results
 
-See the model card on Hugging Face: https://huggingface.co/decentmakeover/bsba-21-bantwal-konkani-4b. In short, against the Gemma 3 4B + Konkani LLM baseline: replies stay
+See the model card on Hugging Face: [decentmakeover/bsba-21-bantwal-konkani-4b](https://huggingface.co/decentmakeover/bsba-21-bantwal-konkani-4b). In short, against the Gemma 3 4B + Konkani LLM baseline: replies stay
 in Konkani 90% vs 5%, English → Konkani chrF 31.7 vs 8.4, perplexity on unseen Mangalorean channels 15.8 vs 70.1.
 
 ## Not included
